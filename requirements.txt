@@ -1,0 +1,4 @@
+gymnasium
+gymnasium[mujoco]
+gymnasium[box2d]
+torch
