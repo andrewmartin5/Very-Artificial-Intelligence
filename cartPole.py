@@ -2,14 +2,14 @@ import numpy as np
 import torch
 import gymnasium as gym
 import torch.nn as nn
-from algorithms.Gradient import Gradient
+from algorithms.GradientExample import Gradient
 
-def run_episode(env, render=False):
+def run_episode(env, episode_length, render=False):
     # Initialize lists of outputs
     states, actions, probs, rewards = [],[],[],[]
     state, _ = env.reset()
     
-    for _ in range(1000):
+    for _ in range(episode_length):
         if render:
             env.render()
         
@@ -36,20 +36,24 @@ def run_episode(env, render=False):
 env = gym.make("CartPole-v1")
 num_inputs = env.observation_space.shape[0]
 num_actions = env.action_space.n
+episode_length = 10000
 
 model = nn.Sequential(
-    nn.Linear(num_inputs, 64),
+    nn.Linear(num_inputs, 16),
     nn.ReLU6(),
-    nn.Linear(64, num_actions),
+    nn.Linear(16, num_actions),
     nn.Softmax(dim=-1)
 )
 
 agent = Gradient(model)
 
-for _ in range(200):
-    states, probs, actions, rewards = run_episode(env)
+for _ in range(400):
+    states, probs, actions, rewards = run_episode(env, episode_length)
     agent.train(states, probs, actions, rewards)
+    if sum(rewards) == episode_length:
+        break
+    print(sum(rewards))
         
 # Visually confirm output
 env = gym.make("CartPole-v1", render_mode="human")
-run_episode(env,render=True)
+run_episode(env, episode_length, render=True)
