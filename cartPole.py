@@ -2,8 +2,9 @@ import numpy as np
 import torch
 import gymnasium as gym
 import torch.nn as nn
-from algorithms.GradientExample import Gradient
-
+from algorithms.Gradient import Gradient
+import os
+ 
 def run_episode(env, episode_length, render=False):
     # Initialize lists of outputs
     states, actions, probs, rewards = [],[],[],[]
@@ -36,7 +37,7 @@ def run_episode(env, episode_length, render=False):
 env = gym.make("CartPole-v1")
 num_inputs = env.observation_space.shape[0]
 num_actions = env.action_space.n
-episode_length = 10000
+episode_length = 5000
 
 model = nn.Sequential(
     nn.Linear(num_inputs, 16),
@@ -47,13 +48,25 @@ model = nn.Sequential(
 
 agent = Gradient(model)
 
-for _ in range(400):
+maxReward = 0
+
+for _ in range(50000):
     states, probs, actions, rewards = run_episode(env, episode_length)
     agent.train(states, probs, actions, rewards)
-    if sum(rewards) == episode_length:
+    total = sum(rewards)
+    if total == episode_length:
         break
-    print(sum(rewards))
+    if total > maxReward:
+        print(f"Best: {sum(rewards)}", end="\r")
         
+os.system('spd-say "Model trained successfully"')
+
+
 # Visually confirm output
+input("Are you ready to see results?")
+
+torch.save(model, 'adam.pt')
+
 env = gym.make("CartPole-v1", render_mode="human")
-run_episode(env, episode_length, render=True)
+_, _, _, rewards = run_episode(env, episode_length, render=True)
+print(sum(rewards))

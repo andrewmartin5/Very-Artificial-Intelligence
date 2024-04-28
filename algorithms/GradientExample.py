@@ -22,7 +22,7 @@ class Gradient:
     def __init__(self, network) -> None:
         self.network = network
         self.optimizer = optim.AdamW(self.network.parameters(), lr=lr)
-        
+
     def train_on_batch(self, x, y):
         x = torch.from_numpy(x)
         y = torch.from_numpy(y)
