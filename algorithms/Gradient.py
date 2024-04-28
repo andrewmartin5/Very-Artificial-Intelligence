@@ -5,10 +5,7 @@ import torch.optim as optim
 import torch.nn as nn
 import math
 
-# eps = 0.0001
-eps = 0.000
-alpha = 1e-4
-lr = 0.01
+lr = 1
 
 def discounted_rewards(rewards,gamma=0.99,normalize=True):
     ret = []
@@ -17,27 +14,27 @@ def discounted_rewards(rewards,gamma=0.99,normalize=True):
         s = r + gamma * s
         ret.insert(0, s)
     if normalize:
-        ret = (ret-np.mean(ret))/(np.std(ret)+eps)
+        ret = (ret-np.mean(ret))/max(np.std(ret),0.0001)
     return ret
 
 
 class Gradient:
     def __init__(self, network) -> None:
         self.network = network
-        self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
+        self.op = optim.Adam(self.network.parameters(), lr=0.1)
 
     def train_on_batch(self, input, target):
         input = torch.from_numpy(input)
         target = torch.from_numpy(target)
         predictions = self.network(input)
-
         loss = -torch.mean(torch.log(predictions) * target)
         loss.backward()
         with torch.no_grad():
             for param in self.network.parameters():
                 if param == None:
                     continue
-                param -= 1000 * param.grad
+                param -= lr * param.grad
+        # self.op.step()
         self.network[0].weight.grad.zero_()
         self.network[0].bias.grad.zero_()
         self.network[2].weight.grad.zero_()
@@ -49,7 +46,7 @@ class Gradient:
         One-hot our actions (categorize into [1 0] for left and [0 1] for right) 
         We do this by taking the nth column of our identity matrix
         """
-        one_hot_actions = np.eye(2)[actions.T][0]
+        one_hot_actions = np.eye(probs.shape[1])[actions.T][0]
         
         """
         Calculate gradient based on how "confident" we were on each action
@@ -63,5 +60,5 @@ class Gradient:
         
         """Discount each gradient to prioritize higher rewards"""
         gradients *= dr
-        target = alpha*np.vstack([gradients])+probs
+        target = gradients# + probs
         self.train_on_batch(states,target)

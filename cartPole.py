@@ -4,8 +4,12 @@ import gymnasium as gym
 import torch.nn as nn
 from algorithms.Gradient import Gradient
 import os
+import sys
+from tqdm import tqdm
+
+episode_length = 5000
  
-def run_episode(env, episode_length, render=False):
+def run_episode(env, model, episode_length, render=False):
     # Initialize lists of outputs
     states, actions, probs, rewards = [],[],[],[]
     state, _ = env.reset()
@@ -34,39 +38,49 @@ def run_episode(env, episode_length, render=False):
 
     return np.vstack(states), np.vstack(probs), np.vstack(actions), np.vstack(rewards)
 
-env = gym.make("CartPole-v1")
-num_inputs = env.observation_space.shape[0]
-num_actions = env.action_space.n
-episode_length = 5000
+if len(sys.argv) <= 1:
 
-model = nn.Sequential(
-    nn.Linear(num_inputs, 16),
-    nn.ReLU6(),
-    nn.Linear(16, num_actions),
-    nn.Softmax(dim=-1)
-)
+    env = gym.make("CartPole-v1")
+    num_inputs = env.observation_space.shape[0]
+    num_actions = env.action_space.n
 
-agent = Gradient(model)
+    model = nn.Sequential(
+        nn.Linear(num_inputs, 16),
+        nn.ReLU6(),
+        nn.Linear(16, num_actions),
+        nn.Softmax(dim=-1)
+    )
 
-maxReward = 0
+    agent = Gradient(model)
 
-for _ in range(50000):
-    states, probs, actions, rewards = run_episode(env, episode_length)
-    agent.train(states, probs, actions, rewards)
-    total = sum(rewards)
-    if total == episode_length:
-        break
-    if total > maxReward:
-        print(f"Best: {sum(rewards)}", end="\r")
-        
-os.system('spd-say "Model trained successfully"')
+    maxReward = 0
+    counter = 0
+    with tqdm(total=episode_length) as bar:
+        for _ in range(1000000):
+            states, probs, actions, rewards = run_episode(env, model, episode_length)
+            agent.train(states, probs, actions, rewards)
+            total = sum(rewards)[0]
+            if total > maxReward:
+                bar.update(total - maxReward)
+                maxReward = total
+            else:
+                bar.refresh()
+            if total == episode_length:
+                counter += 1
+            if counter > episode_length * 0.01:
+                break
+            
+    os.system('spd-say "Model trained successfully"')
+    torch.save(model, 'tensor.pt')
+    input("Are you ready to see results?")
+
+else:
+    model = torch.load("tensor.pt")
 
 
 # Visually confirm output
-input("Are you ready to see results?")
 
-torch.save(model, 'adam.pt')
 
 env = gym.make("CartPole-v1", render_mode="human")
-_, _, _, rewards = run_episode(env, episode_length, render=True)
+_, _, _, rewards = run_episode(env, model, episode_length, render=True)
 print(sum(rewards))
