@@ -1,4 +1,7 @@
 gymnasium
-gymnasium[mujoco]
-gymnasium[box2d]
+pygame
 torch
+numpy
+tqdm
+wandb
+tensorflow
