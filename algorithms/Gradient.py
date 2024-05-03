@@ -45,8 +45,8 @@ class Gradient:
         output = self.network(states)
         
         """Different Loss (error) functions will affect the way our network will respond to error"""
-        loss = -torch.mean(torch.log(output) * target) # Negative Log Loss function
-        # loss = torch.mean((output - target)**2) # Mean squared error (Don't use, poor performance on nonlinears)
+        # loss = -torch.mean(torch.log(output) * target) # Negative Log Loss function
+        loss = torch.mean((output - target)**2) # Mean squared error (Don't use, poor performance on nonlinears)
         # loss = torch.mean(torch.abs(output - target)) # Mean absolute error
         
         """

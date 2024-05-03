@@ -2,9 +2,19 @@ import torch
 import gymnasium as gym
 from chromosome import Chromosome
 import numpy as np
+from tqdm import tqdm
+import wandb
 
 
+wandb.init(
+    # set the wandb project where this run will be logged
+    project="CartpoleCompare",
 
+    # track hyperparameters and run metadata
+    config={
+    "learning_rate": 0.1,
+    }
+)
 
 class DarwinianShenanigans:
 
@@ -58,18 +68,21 @@ class DarwinianShenanigans:
                 childParams.data += temp
             return child
 
-        for generation in range(numGenerations):
-            fitnesses = [self.calcFitness(c) for c in self.population]
-            print("GEN",generation)
-            survivorsIndexes = np.argsort(fitnesses)[-numSurvivors:] # gets the n best of the current pop
-            survivors = [self.population[i] for i in survivorsIndexes]
-            #print(fitnesses[survivorsIndexes[0]])
-            newPop = []
-            for _ in range(self.popSize):
-                parent1 = np.random.choice(survivors)
-                parent2 = np.random.choice(survivors)
-                newPop.append(sex(parent1, parent2))
-            self.population = newPop
+        with tqdm(total=numGenerations * self.popSize) as bar:
+            for generation in range(numGenerations):
+                fitnesses = [self.calcFitness(c) for c in self.population]
+                for f in fitnesses:
+                    wandb.log({"acc": max(fitnesses)})
+
+                survivorsIndexes = np.argsort(fitnesses)[-numSurvivors:] # gets the n best of the current pop
+                survivors = [self.population[i] for i in survivorsIndexes]
+                newPop = []
+                for _ in range(self.popSize):
+                    parent1 = np.random.choice(survivors)
+                    parent2 = np.random.choice(survivors)
+                    newPop.append(sex(parent1, parent2))
+                    bar.update(1)
+                self.population = newPop
 
 
 

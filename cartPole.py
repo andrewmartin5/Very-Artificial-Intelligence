@@ -5,10 +5,8 @@ import torch.nn as nn
 from algorithms.Gradient import Gradient
 import os
 import sys
-from tqdm import tqdm, trange
+from tqdm import trange
 import wandb
-from wandb.keras import WandbCallback
-
 
 episode_length = 1000
 
@@ -51,7 +49,7 @@ if True:
 
         # track hyperparameters and run metadata
         config={
-        "learning_rate": 0.1,
+        "learning_rate": 0.8,
         }
     )
 
@@ -74,39 +72,28 @@ if True:
 
     maxReward = 0
     counter = 0
-    with tqdm(total=10000) as bar:
-        for i in range(10000):
-        # while True:
-            if i % 1000 == 0:
-                states, probs, actions, rewards = run_episode(env, model, episode_length)
-            else:
-                states, probs, actions, rewards = run_episode(env, model, episode_length)
-            loss = agent.train(states, probs, actions, rewards)
-            total = sum(rewards)[0]
-            wandb.log({"acc": total, "loss": loss})
 
-            bar.update(1)
-            # if total > maxReward:
-            #     bar.update(total - maxReward)
-            #     maxReward = total
-            # else:
-            #     bar.refresh()
-            # if total == episode_length:
-            #     counter += 1
-            # if counter > episode_length * 0.1:
-            #     break
+    rs = []
 
-    # os.system('spd-say "Model trained successfully"')
+    for i in trange(1500):
+    # while True:
+        if i % 1000 == 0:
+            states, probs, actions, rewards = run_episode(env, model, episode_length)
+        else:
+            states, probs, actions, rewards = run_episode(env, model, episode_length)
+        loss = agent.train(states, probs, actions, rewards)
+        total = sum(rewards)[0]
+        if len(rs) > 50:
+            rs.pop(0)
+        rs.append(total)
+        wandb.log({"acc": sum(rs)/len(rs)})
+
     torch.save(model, 'MAE2.pt')
-    # input("Are you ready to see results?")
 
 else:
-    model = torch.load("MAE2.pt")
-
-
     # Visually confirm output
 
-
+    model = torch.load("MAE2.pt")
     env = gym.make("CartPole-v1", render_mode="human")
     _, _, _, rewards = run_episode(env, model, 1000000, render=True)
     print(sum(rewards))
