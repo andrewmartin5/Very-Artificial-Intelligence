@@ -49,7 +49,7 @@ if True:
 
         # track hyperparameters and run metadata
         config={
-        "learning_rate": 0.8,
+        "learning_rate": 0.8
         }
     )
 
@@ -61,14 +61,14 @@ if True:
 
     model = nn.Sequential(
         nn.Linear(num_inputs, 8),
-        nn.ReLU6(),
+        nn.ReLU(),
         nn.Linear(8, 4),
-        nn.ReLU6(),
+        nn.ReLU(),
         nn.Linear(4, num_actions),
         nn.Softmax(dim=-1)
     )
 
-    agent = Gradient(model, learning_rate=wandb.config["learning_rate"])
+    agent = Gradient(model, learning_rate=wandb.config["learning_rate"], with_adam=False)
 
     maxReward = 0
     counter = 0
@@ -77,23 +77,21 @@ if True:
 
     for i in trange(1500):
     # while True:
-        if i % 1000 == 0:
-            states, probs, actions, rewards = run_episode(env, model, episode_length)
-        else:
-            states, probs, actions, rewards = run_episode(env, model, episode_length)
+        states, probs, actions, rewards = run_episode(env, model, episode_length)
         loss = agent.train(states, probs, actions, rewards)
         total = sum(rewards)[0]
-        if len(rs) > 50:
+        if len(rs) > 25:
             rs.pop(0)
         rs.append(total)
         wandb.log({"acc": sum(rs)/len(rs)})
+        # wandb.log({"acc": total})
 
-    torch.save(model, 'MAE2.pt')
+    torch.save(model, 'Grad.pt')
 
 else:
     # Visually confirm output
 
-    model = torch.load("MAE2.pt")
+    model = torch.load("Grad.pt")
     env = gym.make("CartPole-v1", render_mode="human")
     _, _, _, rewards = run_episode(env, model, 1000000, render=True)
     print(sum(rewards))

@@ -8,7 +8,7 @@ class Chromosome(nn.Module):
         self.layer1 = nn.Linear(numInputs, firstLayerSize)
         self.layer2 = nn.Linear(firstLayerSize, secondLayerSize)
         self.layer3 = nn.Linear(secondLayerSize, numOutputs)
-        self.activation = nn.ReLU6() # the activation function for the hidden layers
+        self.activation = nn.ReLU() # the activation function for the hidden layers
 
     def forward(self, x):
         x = self.activation(self.layer1(x))

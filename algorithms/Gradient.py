@@ -1,8 +1,9 @@
 # Vanilla policy gradient method, rebuilt but using similar process
 import numpy as np
 import torch
+import torch.optim as optim
 
-def discounted_rewards(rewards,gamma=0.99,normalize=True):
+def discount(rewards,gamma=0.99,normalize=True):
     ret = np.zeros_like(rewards, dtype=float)
     s = 0
     for i, r in enumerate(rewards[::-1]):
@@ -14,9 +15,12 @@ def discounted_rewards(rewards,gamma=0.99,normalize=True):
 
 
 class Gradient:
-    def __init__(self, network, learning_rate) -> None:
+    def __init__(self, network, learning_rate, with_adam = False) -> None:
         self.network = network
         self.alpha = learning_rate
+        self.optimized = with_adam
+        if with_adam:
+            self.optimizer = optim.Adam(self.network.parameters(), lr = 0.01)
         
     def train(self, states, output, actions, rewards):
         """
@@ -33,13 +37,13 @@ class Gradient:
         """
         Discount rewards, weighting values with higher reward over those with lower reward
         """
-        dr = discounted_rewards(rewards)
+        dr = discount(rewards)
         
         """Discount each advantage to prioritize higher rewards"""
         advantage *= dr
         
         """Create a target that has our current probabilities plus our new advantage"""
-        target = advantage + output
+        target = output + advantage
         
         """Recalculate probabilities of actions, used for backprop"""
         output = self.network(states)
@@ -55,14 +59,19 @@ class Gradient:
         Gradients are set based on our loss
         """
         loss.backward()
-        
-        """Update each parameter in the network"""
-        with torch.no_grad():
-            for param in self.network.parameters():
-                if param == None:
-                    continue
-                param -= self.alpha * param.grad
-                """Zero gradients to allow for continued propogation"""
-                param.grad.zero_()
+
+        if not self.optimized:
+            """Update each parameter in the network"""
+            with torch.no_grad():
+                for param in self.network.parameters():
+                    if param == None:
+                        continue
+                    param -= self.alpha * param.grad
+                    """Zero gradients to allow for continued propogation"""
+                    param.grad.zero_()
+
+        else:
+            self.optimizer.step()
+            self.optimizer.zero_grad()
                 
         return loss
